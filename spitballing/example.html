@@ -1,0 +1,53 @@
+<div>
+  <h1 data-bind-scope="test">
+    <div 
+      data-bind-attribute="
+        class: 'country city town ' + test.colors
+      "
+      data-bind-property="
+        innerText: test.userName, 
+        something: 34
+      "
+      data-bind-event="
+        input: (e) => test.userName = parse(e.value)
+      "
+      data-bind-render-for="address of test.addresses"
+      data-bind-render-if=""
+    >
+    </div>
+  </h1>
+
+  <h1 $scope="test">
+    <div
+      $attribute="
+        class: 'country city town ' + test.colors
+      "
+      $property="
+        innerText: test.userName, 
+        something: 34
+      "
+      $event="
+        input: (e) => test.userName = util.parse(e.value)
+      "
+      $render-for="address of test.addresses"
+      $render-if=""
+      $inner
+    >
+      Hey this is an inner message where ${user.name} can be referenced!
+    </div>
+    <template $render-if="true">
+      <h1>Something</h1>
+      <div></div>
+    </template>
+  </h1>
+
+
+<div data-bind-scope="todo">
+  <h1>To Do List</h1>
+  <ul data-bind-attribute="class: `whatever this is plus ${todo.classes}`">
+    <template data-bind-render-for="item of todo.items" data-bind-render-if="item.type === 'reminder'">
+      <li data-bind-property="innerText: item.name"></li>
+    </template>
+  </ul>
+</div>
+
