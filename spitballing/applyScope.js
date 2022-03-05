@@ -32,7 +32,7 @@ function getScope(el) {
   return scope
 }
 
-function applyScopeToEl(el) {
+function bindElement(el) {
   let scope = getScope(el)
 
   function extractValues(attrName) {
@@ -68,13 +68,25 @@ function applyScopeToEl(el) {
   if (propValues) {
     for (let key of Object.keys(propValues)) {
       let value = propValues[key]
-      if (value !== el[key]) {
-        el[key] = value
+      el[key] = value
+    }
+  }
+
+  // apply events
+  let eventValues = extractValues('data-bind-event')
+  if (eventValues) {
+    debugger
+    for (let eventName of Object.keys(eventValues)) {
+      let eventHandler = eventValues[eventName]
+      let priorHandlers = el[Symbol.for('data-bind-event-handlers')] || []
+      for (let priorHandler of priorHandlers) {
+        el.removeEventListener(eventName, priorHandler, false)
       }
+      el.addEventListener(eventName, eventHandler, false)
+      el[Symbol.for('data-bind-event-handlers')] = [eventHandler]
     }
   }
 }
-
 
 function renderTemplate(template) {
   observeMutations(template)
@@ -111,7 +123,7 @@ function renderTemplate(template) {
   }
 
   let renderIfAttr = template.attributes['data-bind-render-if']
-  let templateCurrentSiblings = [...template.parent.children]
+  let templateCurrentSiblings = [...template.parentElement.children]
 
   for (let value of renderForDef.values || [undefined]) {
     let templateFragment = template.content.cloneNode(true)
@@ -149,17 +161,18 @@ function applyScope(root = document.body.parentElement, ignoredTargets = []) {
   let targetSelectors = [
     '[data-bind-attribute]',
     '[data-bind-property]',
+    '[data-bind-event]',
     'template[data-bind-render-if]',
     'template[data-bind-render-for]'
   ]
 
   let targets = [...document.querySelectorAll(targetSelectors.join(', '))]
-  targets = targets.filter(t => !targets.includes(t))
+  targets = targets.filter(t => !ignoredTargets.includes(t))
   for (let target of targets) {
     if (target.constructor === HTMLTemplateElement) {    
       renderTemplate(target)
     } else {
-      applyScopeToEl(target)
+      bindElement(target)
     }
   }
 }
@@ -196,7 +209,11 @@ function observeMutations(el) {
         renderTemplate(target)
       } 
       if (target.matches('[data-bind-attribute], [data-bind-property], [data-bind-event]')) {
-        applyScopeToEl(target)
+        bindElement(target)
+      }
+      // known issues here, could be other changes involved. should check att changed
+      if (target.matches(['[data-bind-scope]'])) {
+        applyScope(target)
       }
     }
   });
@@ -208,6 +225,7 @@ function observeMutations(el) {
     attributeOldValue: true,
     characterDataOldValue: true,
     attributeFilter: [
+      'data-bind-scope',
       'data-bind-attribute',
       'data-bind-property',
       'data-bind-event',
