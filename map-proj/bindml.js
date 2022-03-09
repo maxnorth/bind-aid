@@ -42,9 +42,8 @@ function bindElement(el) {
     }
 
     try {
-      with (scope) {
-        return eval(`({${attr.value}})`)
-      }
+      let evaluateValues = Function(`with (arguments[0]) return ({${attr.value}})`)
+      return evaluateValues(scope)
     }
     catch (er) {
       console.error(er)
@@ -108,9 +107,8 @@ function renderTemplate(template) {
     let scopeName = renderForValue.slice(0, splitIndex)
     let forDef = renderForValue.slice(splitIndex).trim()
     let values = []
-    with (scope) {
-      eval(`for (${scopeName} ${forDef}) values.push(${scopeName})`)
-    }
+    evaluateForDef = Function(`with (arguments[0]) for (${scopeName} ${forDef}) arguments[1].push(${scopeName})`)
+    evaluateForDef(scope, values)
     renderForDef = {
       scopeName,
       values
@@ -164,9 +162,8 @@ function renderTemplate(template) {
       if (renderForDef.scopeName) {
         scope[renderForDef.scopeName] = value
       }
-      with (scope) {
-        shouldRender = eval(renderIfAttr.value)
-      }
+      evalIfDef = Function(`with (arguments[0]) return ${renderIfAttr.value}`)
+      shouldRender = evalIfDef(scope)
     }
 
     if (shouldRender) {
@@ -288,7 +285,6 @@ function createProxy(target, updateCallback) {
         return target
       }
       let value = target[prop]
-      // TODO improve
       if (typeof value === 'object') {
         return createProxy(value, updateCallback)
       }
