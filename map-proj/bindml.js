@@ -89,19 +89,15 @@ function bindElement(el) {
 
 function renderTemplate(template) {
   observeMutations(template)
-
-  const templateIdSymbol = Symbol.for('data-bind-render-template')
-  
-  if (!template[templateIdSymbol]) {
-    template[templateIdSymbol] = { collections: [] }
-    template.parentElement.insertBefore(document.createComment("template data-bind-render"), template)
-  } else {
-    for (let element of template[templateIdSymbol].collections.flat()) {
-      template.parentElement.removeChild(element)
-    }
-    template[templateIdSymbol].collections = []
+    
+  if (!template[Symbol.for('data-bind-render-template-end-ref')]) {
+    let templateEndRef = document.createComment("template data-bind-render end")
+    template[Symbol.for('data-bind-render-template-end-ref')] = templateEndRef
+    // TODO: make this a non-essential reference (i.e. i can remove from DOM without breaking things)
+    template.parentElement.insertBefore(templateEndRef, template.nextSibling)
+    template.parentElement.insertBefore(document.createComment("template data-bind-render start"), template.nextSibling)
   }
-  
+
   let scope = getScope(template)
   
   let renderForDef = {}
@@ -124,8 +120,35 @@ function renderTemplate(template) {
   let renderIfAttr = template.attributes['data-bind-render-if']
   let templateCurrentSiblings = [...template.parentElement.children]
 
-  for (let value of renderForDef.values || [undefined]) {
-    let templateFragment = template.content.cloneNode(true)
+  let prevElementMap = template[Symbol.for('data-bind-render-template-map')] || new Map()
+  let newElementMap = template[Symbol.for('data-bind-render-template-map')] = new Map()
+
+  let templateEndRef = template[Symbol.for('data-bind-render-template-end-ref')]
+  const activeElement = document.activeElement
+  
+  for (let element of [...prevElementMap.values()].flat()) {
+    element.remove()
+  }
+
+  for (let value of renderForDef.values || [Symbol.for('data-bind-render-template-non-for-item')]) {
+    if (value._) {
+      value = value._
+    }
+    // content mapping
+    let templateFragment
+    if (prevElementMap.has(value)) {
+      templateFragment = document.createDocumentFragment()
+      let itemElements = prevElementMap.get(value)
+      newElementMap.set(value, itemElements)
+      for (let element of itemElements) {
+        templateFragment.append(element)
+      }
+    } else {
+      templateFragment = template.content.cloneNode(true)
+      newElementMap.set(value, [...templateFragment.children])
+    }
+    
+    // set element scopes
     if (renderForDef.scopeName) {
       for (let child of templateFragment.children) {
         child[Symbol.for('template-bind-render-for-scope')] = {
@@ -134,6 +157,8 @@ function renderTemplate(template) {
         }
       }
     }
+
+    // if logic
     let shouldRender = true 
     if (renderIfAttr && renderIfAttr.value.trim()) {
       if (renderForDef.scopeName) {
@@ -145,17 +170,26 @@ function renderTemplate(template) {
     }
 
     if (shouldRender) {
-      template[templateIdSymbol].collections.push([...templateFragment.children])
-      template.parentElement.insertBefore(templateFragment, template)
+      template.parentElement.insertBefore(templateFragment, templateEndRef)
     }
   }
 
-  applyScope(template.parentElement, templateCurrentSiblings)
+  activeElement.focus()
+  applyScopeAsync(template.parentElement, templateCurrentSiblings)
 }
 
-function applyScope(root = document.body.parentElement, ignoredTargets = []) {
-  // this should not target root, it should always target document.body.parentElement
-  observeMutations(document.body.parentElement)
+async function applyScopeAsync(root = document.body.parentElement, ignoredTargets = []) {
+  let queuedCalls = window[Symbol.for('data-bind-apply-scope-queue')] || []
+  queuedCalls.push([root, ignoredTargets])
+  if (window[Symbol.for('data-bind-apply-scope-queue')]) {
+    return
+  }
+  window[Symbol.for('data-bind-apply-scope-queue')] = queuedCalls
+  
+  await asyncTimeout(0)
+  
+  let queuedCalls2 = window[Symbol.for('data-bind-apply-scope-queue')]
+  delete window[Symbol.for('data-bind-apply-scope-queue')]
 
   let targetSelectors = [
     '[data-bind-attribute]',
@@ -165,9 +199,20 @@ function applyScope(root = document.body.parentElement, ignoredTargets = []) {
     'template[data-bind-render-for]'
   ]
 
-  let targets = [...document.querySelectorAll(targetSelectors.join(', '))]
-  targets = targets.filter(t => !ignoredTargets.includes(t))
-  for (let target of targets) {
+  let allTargets = []
+  let allIgnoredTargets = []
+  for (let [root, ignoredTargets] of queuedCalls2) {
+    allTargets = allTargets.concat([...root.querySelectorAll(targetSelectors.join(', '))])
+    allIgnoredTargets = allIgnoredTargets.concat(ignoredTargets)
+  }
+  let filteredTargets = allTargets.filter(t => !allIgnoredTargets.includes(t))
+  let rootNode = document.getRootNode()
+  for (let target of filteredTargets) {
+    // experiment
+    if (!rootNode.contains(target)) {
+      continue
+    }
+    // end experiment
     if (target.constructor === HTMLTemplateElement) {    
       renderTemplate(target)
     } else {
@@ -202,7 +247,7 @@ function observeMutations(el) {
 
     for (let target of targets) {
       if (!target.matches) {
-        return
+        continue
       }
       if (target.matches('template[data-bind-render-if], template[data-bind-render-for]')) {
         renderTemplate(target)
@@ -212,7 +257,7 @@ function observeMutations(el) {
       }
       // known issues here, could be other changes involved. should check att changed
       if (target.matches(['[data-bind-scope]'])) {
-        applyScope(target)
+        applyScopeAsync(target)
       }
     }
   });
@@ -256,13 +301,15 @@ function createProxy(target, updateCallback) {
   })
 }
 
-document.querySelector('[data-bind-scope=todo]').scope = createProxy({ 
-  classes: 'test', 
-  userInput: 'bleh', 
-  items: [
-    {name: 'john', type: 'reminder'}, 
-    {name: 'eric', type: 'reminder2'}
-  ] 
-}, applyScope)
+function asyncTimeout(delay) {
+  return new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      resolve(timeoutId);
+    }, delay);
+  });
+}
 
-applyScope()
+window.addEventListener('load', async () => {
+  observeMutations(document.body.parentElement)
+  await applyScopeAsync()
+})

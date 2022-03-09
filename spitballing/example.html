@@ -53,13 +53,13 @@
     </template>
   </ul>
   <div>
-    <label>My input</label>
+    <label>My input with value <span data-bind-property="innerText: todo.value"></span></label>
     <input type="text" 
       data-bind-property="
-        value: todo.userInput
+        value: todo.value
       "
       data-bind-event="
-        oninput: (e) => console.log(e)
+        input: (e) => todo.value = e.target.value
       ">
   </div>
 </div>
