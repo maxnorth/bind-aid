@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>TodoMVC</title>
+        <script src="bindml.js" ></script>
+        <script defer>
+          window.addEventListener('load', () => {
+            document.querySelector('[data-bind-scope=todo]').scope = createProxy({ 
+              classes: 'test', 
+              userInput: 'bleh', 
+              items: [
+                {name: 'john', type: 'reminder'}, 
+                {name: 'eric', type: 'reminder2'}
+              ],
+              value: 'woooo'
+            }, applyScopeAsync)
+          })
+
+          customElements.define('some-thing', class extends HTMLElement {
+            constructor() {
+              super()
+              let shadowRoot = this.attachShadow({mode: 'closed'})
+              shadowRoot.innerHTML = `
+                <template data-bind-scope="hey" data-bind-render-if>
+                  <h3 data-bind-property="innerText: hey.value">PLACEHOLDER</h3>
+                </template>
+              `
+              let template = shadowRoot.children[0]
+              template.scope = this.scope = createProxy({}, () => {
+                applyScopeAsync(shadowRoot)
+              })
+              this.scope.value = 'yooooo'
+            }
+
+            set bleh(value) {
+              this.scope.value = value
+            }
+
+            #scope;
+          })
+        </script>
+    </head>
+    <body>
+      <div data-bind-scope="todo" >
+        <template data-bind-render-for="z of todo.items" data-bind-render-if="todo.classes === 'test'">
+          <h1>To Do List</h1>
+          <some-thing data-bind-property="bleh: todo.value"></some-thing>
+          <ul data-bind-attribute="
+            class: `whatever this is plus ${todo.classes}`,
+            title: todo.title
+          ">
+            <template 
+              data-bind-render-for="item of todo.items" 
+              data-bind-render-if="item.type === 'reminder'"
+            >
+              <li data-bind-property="innerText: item.name"></li>
+            </template>
+          </ul>
+          <div>
+            <label>My input with value <span data-bind-property="innerText: todo.value"></span></label>
+            <input type="text" 
+              data-bind-property="
+                value: todo.value
+              "
+              data-bind-event="
+                input: (e) => todo.value = e.target.value
+              ">
+          </div>
+        </template>
+      </div>
+    </body>
+</html>

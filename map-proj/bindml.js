@@ -4,9 +4,9 @@ function getScope(el) {
       return
     }
     
-    bindRenderForScope = el[Symbol.for('template-bind-render-for-scope')]
-    if (bindRenderForScope) {
-      scopes.push(bindRenderForScope)
+    bindRenderScopes = el[Symbol.for('template-bind-render-scopes')]
+    for (let bindRenderScope of bindRenderScopes || []) {
+      scopes.push(bindRenderScope)
     }
 
     let scopeAttr = el.attributes['data-bind-scope']
@@ -93,8 +93,8 @@ function renderTemplate(template) {
     let templateEndRef = document.createComment("template data-bind-render end")
     template[Symbol.for('data-bind-render-template-end-ref')] = templateEndRef
     // TODO: make this a non-essential reference (i.e. i can remove from DOM without breaking things)
-    template.parentElement.insertBefore(templateEndRef, template.nextSibling)
-    template.parentElement.insertBefore(document.createComment("template data-bind-render start"), template.nextSibling)
+    template.parentNode.insertBefore(templateEndRef, template.nextSibling)
+    template.parentNode.insertBefore(document.createComment("template data-bind-render start"), template.nextSibling)
   }
 
   let scope = getScope(template)
@@ -116,7 +116,10 @@ function renderTemplate(template) {
   }
 
   let renderIfAttr = template.attributes['data-bind-render-if']
-  let templateCurrentSiblings = [...template.parentElement.children]
+  let templateCurrentSiblings = [...template.parentNode.children]
+
+  let bindTemplateScopeAttr = template.attributes['data-bind-scope']
+  let bindTemplateScopeName = bindTemplateScopeAttr?.value?.trim()
 
   let prevElementMap = template[Symbol.for('data-bind-render-template-map')] || new Map()
   let newElementMap = template[Symbol.for('data-bind-render-template-map')] = new Map()
@@ -147,13 +150,23 @@ function renderTemplate(template) {
     }
     
     // set element scopes
+    let bindRenderScopes = []
     if (renderForDef.scopeName) {
-      for (let child of templateFragment.children) {
-        child[Symbol.for('template-bind-render-for-scope')] = {
-          key: renderForDef.scopeName,
-          value: value
-        }
-      }
+      bindRenderScopes.push({
+        key: renderForDef.scopeName,
+        value: value
+      })
+    }
+
+    if (bindTemplateScopeName) {
+      bindRenderScopes.push({
+        key: bindTemplateScopeName,
+        value: template.scope
+      })
+    }
+    
+    for (let child of templateFragment.children) {
+      child[Symbol.for('template-bind-render-scopes')] = bindRenderScopes
     }
 
     // if logic
@@ -167,15 +180,15 @@ function renderTemplate(template) {
     }
 
     if (shouldRender) {
-      template.parentElement.insertBefore(templateFragment, templateEndRef)
+      template.parentNode.insertBefore(templateFragment, templateEndRef)
     }
   }
 
   activeElement.focus()
-  applyScopeAsync(template.parentElement, templateCurrentSiblings)
+  applyScopeAsync(template.parentNode, templateCurrentSiblings)
 }
 
-async function applyScopeAsync(root = document.body.parentElement, ignoredTargets = []) {
+async function applyScopeAsync(root = document.body.parentNode, ignoredTargets = []) {
   let queuedCalls = window[Symbol.for('data-bind-apply-scope-queue')] || []
   queuedCalls.push([root, ignoredTargets])
   if (window[Symbol.for('data-bind-apply-scope-queue')]) {
@@ -203,13 +216,10 @@ async function applyScopeAsync(root = document.body.parentElement, ignoredTarget
     allIgnoredTargets = allIgnoredTargets.concat(ignoredTargets)
   }
   let filteredTargets = allTargets.filter(t => !allIgnoredTargets.includes(t))
-  let rootNode = document.getRootNode()
   for (let target of filteredTargets) {
-    // experiment
-    if (!rootNode.contains(target)) {
+    if (!target.isConnected) {
       continue
     }
-    // end experiment
     if (target.constructor === HTMLTemplateElement) {    
       renderTemplate(target)
     } else {
@@ -293,6 +303,7 @@ function createProxy(target, updateCallback) {
     set(target, prop, value) {
       target[prop] = value
       updateCallback()
+      return true
     }
   })
 }
@@ -306,6 +317,6 @@ function asyncTimeout(delay) {
 }
 
 window.addEventListener('load', async () => {
-  observeMutations(document.body.parentElement)
+  observeMutations(document.body.parentNode)
   await applyScopeAsync()
 })
