@@ -2,7 +2,7 @@
 <html>
     <head>
         <title>TodoMVC</title>
-        <script src="bindml.js" ></script>
+        <script src="/bindml.js" ></script>
         <script defer>
           window.addEventListener('load', () => {
             document.querySelector('[data-bind-scope=todo]').scope = createProxy({ 
@@ -15,30 +15,8 @@
               value: 'woooo'
             }, applyScopeAsync)
           })
-
-          customElements.define('some-thing', class extends HTMLElement {
-            constructor() {
-              super()
-              let shadowRoot = this.attachShadow({mode: 'closed'})
-              shadowRoot.innerHTML = `
-                <template data-bind-scope="hey" data-bind-render-if>
-                  <h3 data-bind-property="innerText: hey.value">PLACEHOLDER</h3>
-                </template>
-              `
-              let template = shadowRoot.children[0]
-              template.scope = this.scope = createProxy({}, () => {
-                applyScopeAsync(shadowRoot)
-              })
-              this.scope.value = 'yooooo'
-            }
-
-            set bleh(value) {
-              this.scope.value = value
-            }
-
-            #scope;
-          })
         </script>
+        <script defer src="component.js" ></script>
     </head>
     <body>
       <div data-bind-scope="todo" >

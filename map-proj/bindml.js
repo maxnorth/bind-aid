@@ -206,7 +206,9 @@ async function applyScopeAsync(root = document.body.parentNode, ignoredTargets =
     '[data-bind-property]',
     '[data-bind-event]',
     'template[data-bind-render-if]',
-    'template[data-bind-render-for]'
+    'template[data-bind-render-for]',
+    'template[data-bind-render]'
+    // [data-bind-extension]
   ]
 
   let allTargets = []
@@ -306,6 +308,10 @@ function createProxy(target, updateCallback) {
       return true
     }
   })
+}
+
+function ReactiveProxy(root, value) {
+  return createProxy(value, () => applyScopeAsync(root))
 }
 
 function asyncTimeout(delay) {
