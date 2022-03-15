@@ -1,2 +1,0 @@
-defer binding to after all properties have been updated
-allow more than one binder per property per binding type
