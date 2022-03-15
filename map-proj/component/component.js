@@ -4,7 +4,9 @@ const templateHtml = `
   </template>
 
   <style>
-    
+    * {
+      color: red;
+    }
   </style>
 `
 
