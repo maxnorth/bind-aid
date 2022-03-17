@@ -1,0 +1,11 @@
+sequence
+- configure elements with scope defined
+- configure elements with a binding defined
+  - can't bind until scope is available
+- apply scope to elements with a binding defined
+- change a scope value
+  - update bound values
+- add/remove scope
+  - reconfigure binding
+- modify binding def
+  - reconfigure binding

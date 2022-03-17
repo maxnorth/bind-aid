@@ -79,7 +79,8 @@ function Observable(target) {
       for (let subId of propertySubIds || []) {
         let subDef = _subStore[subId]
         if (subDef) {
-          setTimeout(() => subDef.callback())
+          // i could probably combine these for non-redundant evaluation
+          setTimeout(() => subDef.callback(subDef.expression(subDef.proxy)))
           setTimeout(() => subDef.proxy.$.evaluateAndListen(subId))
         }
       }

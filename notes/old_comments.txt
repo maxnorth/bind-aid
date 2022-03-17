@@ -1,0 +1,27 @@
+bindAttributes.js 
+
+// maybe split this into a setup func and a reconfigure def func
+// redefine is a matter of replacing bindAttrEval. i probably also need to resubscribe though, since it's a new expression
+// reassigning scope is a matter of reassigning the values in the el's scope observable
+// adding or removing a scope involves redefining the expression and resubscribing
+
+// ways to propagate scope change: 
+// - notify all underneath to refetch their scope, have them iterate through their parents
+// - reassign scope for children, 
+
+// lifecycle stages:
+// - first time binding (med)
+// - reacting to scope inner change (relevant mutation of scope object) (high)
+// - reacting to scope outer change (scope prop reassigned, or a scope added/removed) (med)
+// - binding def changed (low)
+// - binding removed (low)
+
+// changes to the bound expression
+  // if subscription present, revoke it
+  // re-subscribe to changes with latest scope
+// changes to the bound data
+  // callback fired. receive the data and bind it
+// changes to scope
+  // for now at least, just handle
+
+// changes to outerscope will be supported with a full re-render in the short term. later, i want this to work like the observable
