@@ -4,23 +4,28 @@ function bindAttribute(el) {
   // when callback is invoked, use it to re-bind the attr
 
   let elMetadata = getElMetadata(el)
-  let scope = elMetadata.scopeObservable
-
-  let bindExprDef = el.attributes['data-bind-attribute']?.value?.trim()
-  elMetadata.bindAttrEval = Function(`{${Object.keys(scope._).join(', ')}}`, `return ({${bindExprDef}})`)
   
   if (elMetadata.bindAttrSubId) {
     scope.$.unsubscribe(elMetadata.bindAttrSubId)
   }
+  
+  let bindExprDef = el.attributes['data-bind-attribute']?.value?.trim()
+  if (!bindExprDef) {
+    return
+  }
+  
+  let scope = elMetadata.scope
 
+  elMetadata.bindAttrEval = Function(`{${Object.keys(scope?._ || {}).join(', ')}}`, `return ({${bindExprDef}})`)
+  
   // subscribe to changes
-  elMetadata.bindAttrSubId = scope.$.subscribe(
+  elMetadata.bindAttrSubId = scope?.$.subscribe(
     (s) => elMetadata.bindAttrEval(s), 
     (values, error) => error ? null : setAttributes(el, values)
   )
 
   // bind current value
-  let values = elMetadata.bindAttrEval(elMetadata.bindAttrScope)
+  let values = elMetadata.bindAttrEval(scope || {})
   setAttributes(el, values)
 }
 

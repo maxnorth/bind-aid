@@ -11,6 +11,7 @@
 // to be called by user
 function bind(rootNode, registerObserver = true) {
   let targetSelector = [
+    '[data-bind-scope]',
     '[data-bind-attribute]',
     '[data-bind-property]',
     '[data-bind-event]',
@@ -56,7 +57,9 @@ let _observer = new MutationObserver((mutationsList, observer) => {
   for (let mutation of mutationsList) {
     if (mutation.type === "childList") {
       for (let addedNode of mutation.addedNodes) {
-        bind(addedNode, false)
+        if (addedNode.constructor !== Text) {
+          bind(addedNode, false)
+        }
       }
     } else if (mutation.type === "attributes") {
       let attrBindingMap = {
@@ -98,6 +101,8 @@ function getElMetadata(el) {
     elMetadata = {}
     _elMetadata.set(el, elMetadata)
   }
+
+  return elMetadata
 }
 
 // TODO where do i check to make sure it's not harmful/reduntant/wasteful to run this?

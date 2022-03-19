@@ -1,3 +1,4 @@
+// will subscriptions prevent elements from being GC'd?
 let _subStore = {}
 function Observable(target) {
   let _subProxies = {}

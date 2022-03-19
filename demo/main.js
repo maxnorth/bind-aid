@@ -1,5 +1,13 @@
 window.addEventListener('load', async () => {
-  bind(document.body.getRootNode())
-})
+  document.querySelector('[data-bind-scope="todo"]').scope = {
+    classes: 'test'
+  }
+  
+  bind(document.body.parentElement)
 
-document.querySelector('[data-bind-scope="todo"]').scope = {}
+  await asyncTimeout(3000)
+
+  document.querySelector('[data-bind-scope="todo"]').scope = {
+    classes: 'hm'
+  }
+})
