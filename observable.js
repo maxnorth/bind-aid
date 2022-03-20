@@ -1,4 +1,5 @@
 // will subscriptions prevent elements from being GC'd?
+// TODO prototype subscription linking
 let _subStore = {}
 function Observable(target) {
   let _subProxies = {}

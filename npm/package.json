@@ -1,0 +1,8 @@
+{
+  "name": "bind-aid",
+  "version": "0.0.0",
+  "description": "Minimalist html data binding",
+  "main": "main.js",
+  "author": "Max North <maxnorth@hey.com>",
+  "license": "ISC"
+}
