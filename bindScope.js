@@ -1,6 +1,6 @@
 
 function bindScope(el) {
-  let elMeta = getElMetadata(el)
+  let elMeta = getMetaElement(el)
 
   elMeta.scopeName = el.getAttribute('data-bind-scope')
   elMeta.scope = getScope(el, elMeta.scopeName)
@@ -24,10 +24,13 @@ function bindScope(el) {
 }
 
 function getScope(el, newScopeName) {
+  let metaEl = getMetaElement(el)
+  let inheritedScope = metaEl.forScope
   let parentEl = el.parentElement
-  let inheritedScope = undefined
+
   while (parentEl && !inheritedScope) {
-    inheritedScope = getElMetadata(parentEl)?.scope
+    let parentmetaEl = getMetaElement(parentEl)
+    inheritedScope = parentmetaEl.scope || parentmetaEl.forScope
     parentEl = parentEl.parentElement
   }
 
@@ -40,7 +43,7 @@ function getScope(el, newScopeName) {
   })
 
   if (inheritedScope) {
-    Object.setPrototypeOf(newScope, inheritedScope)
+    newScope.$.inherit(inheritedScope)
   }
 
   return newScope

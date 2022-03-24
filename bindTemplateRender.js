@@ -1,102 +1,153 @@
-function bindTemplateRenderFor(el) {
-  if (el.constructor === HTMLTemplateElement) {
+function bindTemplateRender(el) {
+  if (el.constructor !== HTMLTemplateElement) {
     return
   }
 
-  let elMetadata = getElMetadata(el)
+  let metaEl = getMetaElement(el)
   
-  resetBindTemplate(elMetadata)
+  resetBindTemplate(metaEl)
   
-  let scope = elMetadata.scope
+  let scope = metaEl.scope
 
   // render-for setup
   let bindExprDef = el.getAttribute('data-bind-render-for')?.trim()
-  if (!bindExprDef) {  
+  if (bindExprDef) {  
     let splitIndex = bindExprDef.indexOf(' ')
     let forScopeName = bindExprDef.slice(0, splitIndex)
     let forDef = bindExprDef.slice(splitIndex).trim()
 
-    elMetadata.bindRenderForEval = Function(
-      `{${Object.keys(scope?._ || {}).join(', ')}}`, 
+    metaEl.bindRenderForEval = Function(
+      `{${Reflect.ownKeys(scope || {}).join(', ')}}`, 
       `arguments[0] = []; for (${forScopeName} ${forDef}) arguments[0].push(${forScopeName}); return arguments[0];`
     )
 
-    elMetadata.forScopeName = forScopeName
+    metaEl.forScopeName = forScopeName
     
-    elMetadata.bindRenderForSubId = scope?.$.subscribe(
-      (s) => elMetadata.bindRenderForEval(s), 
+    metaEl.bindRenderForSubId = scope?.$.subscribe(
+      (s) => metaEl.bindRenderForEval(s), 
+      // TODO: maybe this queues the render in the next frame?
       (values, error) => error ? null : renderTemplate(el)
     )
   }
   
   // render-if setup
   let bindRenderIfExprDef = el.getAttribute('data-bind-render-if')?.trim()
-  if (!bindRenderIfExprDef) {
-    let scopeNames = Object.keys(scope?._ || {})
-    if (elMetadata.forScopeName) {
-      scopeNames.push(elMetadata.forScopeName)
+  if (bindRenderIfExprDef) {
+    let scopeNames = Reflect.ownKeys(scope || {})
+    if (metaEl.forScopeName) {
+      scopeNames.push(metaEl.forScopeName)
     }
-    elMetadata.bindRenderIfEval = Function(`{${scopeNames.join(', ')}}`, `return (${bindRenderIfExprDef})`)
+    metaEl.bindRenderIfEval = Function(`{${scopeNames.join(', ')}}`, `return (${bindRenderIfExprDef})`)
   }
 
-  // maybe this queues the render in the next frame?
+  renderTemplate(el)
+}
+
+function resetBindTemplate(metaEl) {
+  if (metaEl.bindRenderForSubId) {
+    metaEl.scope?.$.unsubscribe(metaEl.bindRenderForSubId)
+  }
+
+  metaEl.forScopeName = null
+  metaEl.bindRenderForEval = null
+  metaEl.bindRenderForSubId = null
+  metaEl.bindRenderIfEval = null
 }
 
 function renderTemplate(el) {
-  let elMetadata = getElMetadata(el)
-
-  // unrender previous elements
-  elMetadata.renderForMetaCollection = elMetadata.renderForMetaCollection || []
-
-  let items = elMetadata.bindRenderForEval(elMetadata.scope)
-  for (let itemKey in items) {
-    let item = items[itemKey]
-    let metaItem = elMetadata.renderForMetaCollection[itemKey]
-    if (!metaItem) {
-      metaItem = elMetadata.renderForMetaCollection[itemKey] = {}
+  let metaEl = getMetaElement(el)
+  
+  if (metaEl.renderForMetaItems) {
+    for (let metaItem of metaEl.renderForMetaItems.values()) {
+      // TODO optimization opportunity - don't remove everything every time
+      for (let el of metaItem.elements) {
+        el.remove()
+      }
+      // TODO: optimization opportunity, don't resubscribe every item each time
+      metaItem.forScope.$.unsubscribe(metaItem.bindRenderIfSubId)
     }
+  } else {
+    metaEl.renderForMetaItems = new Map()
+  }
 
-    if (!metaItem.elements) {
+  let renderedElementsFragment = document.createDocumentFragment()
+  let items = metaEl.bindRenderForEval(metaEl.scope)
+  for (let item of items) {
+    let itemKey = getItemKey(item)
+    let metaItem
+    if (metaEl.renderForMetaItems.has(itemKey)) {
+      metaItem = metaEl.renderForMetaItems.get(itemKey)
+    } else {
+      metaItem = {}
+      metaEl.renderForMetaItems.set(itemKey, metaItem)
+
+      // create elements
       metaItem.elements = [...el.content.cloneNode(true).children]
-    }
 
-    if (elMetadata.forScopeName) {
-      // unsubscribe previous scope?
-      metaItem.forItemScope = new Observable({
-        [newScopeName]: item
+      // configure scope (create, inherit, assign to items)
+      metaItem.forScope = new Observable({
+        [metaEl.forScopeName]: item?._ || item 
       })
 
-      if (elMetadata.scope) {
-        Object.setPrototypeOf(metaItem.forItemScope, elMetadata.scope)
+      if (metaEl.scope) {
+        metaItem.forScope.$.inherit(metaEl.scope)
+      }
+      
+      for (let forItemEl of metaItem.elements) {
+        let forItemMetaEl = getMetaElement(forItemEl)
+        forItemMetaEl.forScope = metaItem.forScope
       }
     }
 
+    // if condition
+    metaItem.renderIfResult = true
+    if (metaEl.bindRenderIfEval) {        
+      metaItem.renderIfResult = metaEl.bindRenderIfEval(metaItem.forScope)
+      metaItem.bindRenderIfSubId = metaItem.forScope?.$.subscribe(
+        (s) => metaEl.bindRenderIfEval(s), 
+        // TODO: maybe this queues the render in the next frame?
+        (values, error) => error ? null : renderTemplate(el)
+      )
+    }
 
+    if (metaItem.renderIfResult) {
+      renderedElementsFragment.append(...metaItem.elements)
+    }
   }
-
-  for (let item of elMetadata.renderForMetaCollection.slice(items.length)) {
-    // set false
-  }
-
-  // how to make sure mutation observer doesn't do a redundant re-bind?
-
-  // add comments for start and end
+  
+  el.parentElement.insertBefore(renderedElementsFragment, el.nextSibling)
 }
-// template content gets a separate mutation observer i think
 
-// adding or changing any attribute doesn't have to be highly performant. these won't happen in a regular app.
-// reacting to data changes *does* have to be highly performant
-
-
-// weakmap as alternative to symbol prop?
-
-function resetBindTemplate(elMetadata) {
-  if (elMetadata.bindRenderForSubId) {
-    elMetadata.scope?.$.unsubscribe(elMetadata.bindRenderForSubId)
-  }
-
-  elMetadata.forScopeName = null
-  elMetadata.bindRenderForEval = null
-  elMetadata.bindRenderForSubId = null
-  elMetadata.bindRenderIfEval = null
+function getItemKey(item) {
+  return item?._ || item
 }
+
+  // CORE ---------------------------------------------------------------
+
+  // needs to render elements in collection
+
+  // needs to not render elements that don't pass the if condition
+
+  // needs to re-render when if condition or for expression changes
+
+  // if without for
+
+  // plain bind-render
+
+  // OPTIMIZATION -------------------------------------------------------
+  
+  // needs to limit amount of work done on re-rendering if
+  
+  // needs to limit amount of work done on re-rendering for 
+  
+  // EDGE CASES ---------------------------------------------------------
+
+  // Multiple matching itemKeys
+
+  // Renaming scope
+
+  // Mutation observer: Do not rebind when node gets removed and added back to DOM
+
+  // Add comments for start and end
+
+  // Detecting changes in template content

@@ -1,10 +1,11 @@
 // will subscriptions prevent elements from being GC'd?
 // TODO prototype subscription linking
+let _objSubMap = new WeakMap()
 let _subStore = {}
 function Observable(target) {
   let _subProxies = {}
   let _listeningSubId = null
-  let _propertySubs = {}
+  let _proxyProto = null
   let $ = {
     subscribe(expression, callback) {
       let subId = Symbol()
@@ -17,20 +18,14 @@ function Observable(target) {
     unsubscribe(subId) {
       delete _subStore[subId]
     },
-    setListeningSubscription(subId) {
-      if (_listeningSubId && subId) {
-        throw "A subscription is already listening on this proxy"
-      }
-      // when the listener gets removed
-      if (_listeningSubId && !subId) {
-        for (let subProxy of Object.values(_subProxies)) {
-          subProxy.$.setListeningSubscription(null)
-        }
-      }
-      _listeningSubId = subId
-    },
     evaluateAndListen(subId) {
-      let { expression } = _subStore[subId]
+      let subDef = _subStore[subId]
+      if (!subDef) {
+        // TODO: warn? is there a valid scenario for this?
+        return
+      }
+      let { expression } = subDef
+
       if (!subId) {
         console.warn('Invalid subscription id passed to evaluateAndListen')
         return
@@ -38,14 +33,31 @@ function Observable(target) {
 
       try {
         $.setListeningSubscription(subId)
-        expression(proxy)          
+        return expression(proxy)          
       } finally {
         $.setListeningSubscription(null)
       }
+    },
+    setListeningSubscription(subId) {
+      if (_listeningSubId && subId && _listeningSubId !== subId) {
+        throw "A subscription is already listening on this proxy"
+      }
+      // when the listener gets removed
+      if (_listeningSubId && !subId) {
+        for (let subProxy of Object.values(_subProxies)) {
+          subProxy.$.setListeningSubscription(null)
+        }        
+      }
+      _listeningSubId = subId
+      _proxyProto?.$?.setListeningSubscription(subId)
+    },
+    inherit(protoProxy) {
+      _proxyProto = protoProxy
     }
   }
 
   let proxy = new Proxy(target, {
+    // why is target sometimes a proxy?
     get(target, prop) {
       if (prop === '_') {
         return target
@@ -53,21 +65,32 @@ function Observable(target) {
       if (prop === '$') {
         return $
       }
+      let value = target[prop]
+      if (!value && _proxyProto && !Reflect.has(target, prop)) {
+        return _proxyProto[prop]
+      }
       if (_listeningSubId) {
         // register listening subscription for callbacks
-        _propertySubs[prop] = _propertySubs[prop] || new Set()
-        _propertySubs[prop].add(_listeningSubId)
+        let propertySubs = _objSubMap.get(target)
+        if (!propertySubs) {
+          propertySubs = {}
+          _objSubMap.set(target, propertySubs)
+        }
+        propertySubs[prop] = propertySubs[prop] || new Set()
+        propertySubs[prop].add(_listeningSubId)
       }
-      let value = target[prop]
       if (typeof value === 'object' && value !== null) {
+        // TODO, ensure value is a non-proxy
         let subProxy = _subProxies[prop] = _subProxies[prop] || Observable(value)
-        subProxy.$.setListeningSubscription(_listeningSubId)
+        if (_listeningSubId) {
+          subProxy.$.setListeningSubscription(_listeningSubId)
+        }
         return subProxy
       }
       return value
     },
     set(target, prop, value) {
-      value = (value && value._) || value
+      value = value?._ || value
 
       let changed = target[prop] !== value
       // ultimately you'd want to set the cached proxy too i think
@@ -77,16 +100,29 @@ function Observable(target) {
         delete _subProxies[prop]
       }
 
-      let propertySubIds = _propertySubs[prop]
-      for (let subId of propertySubIds || []) {
-        let subDef = _subStore[subId]
-        if (subDef) {
-          // i could probably combine these for non-redundant evaluation
-          setTimeout(() => subDef.callback(subDef.expression(subDef.proxy)))
-          setTimeout(() => subDef.proxy.$.evaluateAndListen(subId))
+      let propertySubs = _objSubMap.get(target)
+      if (propertySubs) {
+        for (let subId of propertySubs[prop] || []) {
+          let subDef = _subStore[subId]
+          if (subDef) {
+            // i could probably combine these for non-redundant evaluation
+            setTimeout(() => subDef.callback(subDef.expression(subDef.proxy)))
+            setTimeout(() => subDef.proxy.$.evaluateAndListen(subId)) // could this return the value to use above?
+          }
         }
       }
       return true
+    },
+    ownKeys(target) {
+      let proxyKeys = _proxyProto ? Reflect.ownKeys(_proxyProto) : []
+      let targetKeys = Reflect.ownKeys(target)
+      let keys = [...new Set(proxyKeys.concat(targetKeys))]
+            
+      return keys
+    },
+    has(target, key) {
+      let specialKeys = ['$', '_']
+      return specialKeys.includes(key) || Reflect.has(target, key)
     }
   })
 

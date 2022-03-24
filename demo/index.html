@@ -17,8 +17,8 @@
           }
         </style>
     </head>
-    <body>
-      <div data-bind-scope="todo" >
+    <body data-bind-scope="todo">
+      <div data-bind-scope="test">
         <h1 data-bind-attribute="class: todo.classes">Heyyyyyy</h1>
         <h1 data-bind-property="innerText: todo.classes">This should be replaced</h1>
         <template data-bind-render-for="z of todo.items" data-bind-render-if="todo.classes === 'test'">
@@ -41,7 +41,7 @@
                 value: todo.value
               "
               data-bind-event="
-                input: (e) => todo.value = e.target.value
+                input(e) => todo.value = e.target.value
               ">
           </div>
         </template>

@@ -57,9 +57,15 @@ let _observer = new MutationObserver((mutationsList, observer) => {
   for (let mutation of mutationsList) {
     if (mutation.type === "childList") {
       for (let addedNode of mutation.addedNodes) {
-        if (addedNode.constructor !== Text) {
-          bind(addedNode, false)
+        if (addedNode.constructor === Text) {
+          continue
         }
+        let metaEl = getMetaElement(addedNode)
+        if (metaEl.isBinded) {
+          continue
+        }
+        metaEl.isBinded = true
+        bind(addedNode, false)
       }
     } else if (mutation.type === "attributes") {
       let attrBindingMap = {
@@ -68,8 +74,8 @@ let _observer = new MutationObserver((mutationsList, observer) => {
         ['data-bind-attribute']: bindAttribute,
         ['data-bind-property']: bindProperty,
         ['data-bind-event']: bindEvent,
-        ['data-bind-render-if']: bindTemplateRenderIf,
-        ['data-bind-render-for']: bindTemplateRenderFor
+        ['data-bind-render-if']: bindTemplateRender,
+        ['data-bind-render-for']: bindTemplateRender
       }
 
       attrBindingMap[mutation.type](mutation.target)
@@ -94,15 +100,15 @@ function isObserved(el, setValue) {
   return isObserved(el.parentNode)
 }
 
-var _elMetadata = new WeakMap()
-function getElMetadata(el) {
-  let elMetadata = _elMetadata.get(el)
-  if (!elMetadata) {
-    elMetadata = {}
-    _elMetadata.set(el, elMetadata)
+var _metaEl = new WeakMap()
+function getMetaElement(el) {
+  let metaEl = _metaEl.get(el)
+  if (!metaEl) {
+    metaEl = {}
+    _metaEl.set(el, metaEl)
   }
 
-  return elMetadata
+  return metaEl
 }
 
 // TODO where do i check to make sure it's not harmful/reduntant/wasteful to run this?
@@ -116,8 +122,7 @@ function bindElement(el) {
   bindScope(el)
   bindAttribute(el)
   bindProperty(el)
-  bindTemplateRenderIf(el)
-  bindTemplateRenderFor(el)
+  bindTemplateRender(el)
 }
 
 // need a method to re-evaluate child scope caches, indicate which 
