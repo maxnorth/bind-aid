@@ -5,10 +5,10 @@ function bindTemplateRender(el) {
 
   let metaEl = getMetaElement(el)
   
+  let scope = metaEl.scope
+  
   resetBindTemplate(metaEl)
   
-  let scope = metaEl.scope
-
   // render-for setup
   let bindExprDef = el.getAttribute('data-bind-render-for')?.trim()
   if (bindExprDef) {  
@@ -55,6 +55,7 @@ function resetBindTemplate(metaEl) {
 }
 
 function renderTemplate(el) {
+  console.info('renderTemplate')
   let metaEl = getMetaElement(el)
   
   if (metaEl.renderForMetaItems) {

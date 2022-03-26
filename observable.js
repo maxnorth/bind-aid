@@ -59,6 +59,7 @@ function Observable(target) {
   let proxy = new Proxy(target, {
     // why is target sometimes a proxy?
     get(target, prop) {
+      // console.warn('hit')
       if (prop === '_') {
         return target
       }
@@ -90,6 +91,7 @@ function Observable(target) {
       return value
     },
     set(target, prop, value) {
+      console.info('set')
       value = value?._ || value
 
       let changed = target[prop] !== value

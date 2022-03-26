@@ -10,6 +10,27 @@
 
 // to be called by user
 function bind(rootNode, registerObserver = true) {
+  // TODO: edge case handling: bind an el, unbind it, and bind a subsection
+  if (registerObserver && !isObserved(rootNode)) {
+    _observer.observe(rootNode, {
+      attributes: true, 
+      childList: true, 
+      subtree: true,
+      attributeOldValue: false,
+      characterDataOldValue: false, 
+      attributeFilter: [
+        'data-bind-scope',
+        'data-bind-attribute',
+        'data-bind-property',
+        'data-bind-event',
+        'data-bind-render-if',
+        'data-bind-render-for'
+      ]
+    })
+    
+    isObserved(rootNode, true)
+  }
+
   let targetSelector = [
     '[data-bind-scope]',
     '[data-bind-attribute]',
@@ -27,30 +48,6 @@ function bind(rootNode, registerObserver = true) {
   for (let target of rootNode.querySelectorAll(targetSelector)) {
     bindElement(target)
   }
-
-  // TODO: edge case handling: bind an el, unbind it, and bind a subsection
-  let skipMutationObserver = !registerObserver || isObserved(rootNode)
-  if (skipMutationObserver) {
-    return
-  }
-
-  _observer.observe(rootNode, {
-    attributes: true, 
-    childList: true, 
-    subtree: true,
-    attributeOldValue: false,
-    characterDataOldValue: false, 
-    attributeFilter: [
-      'data-bind-scope',
-      'data-bind-attribute',
-      'data-bind-property',
-      'data-bind-event',
-      'data-bind-render-if',
-      'data-bind-render-for'
-    ]
-  })
-  
-  isObserved(rootNode, true)
 }
 
 let _observer = new MutationObserver((mutationsList, observer) => {
@@ -65,6 +62,7 @@ let _observer = new MutationObserver((mutationsList, observer) => {
           continue
         }
         metaEl.isBinded = true
+        
         bind(addedNode, false)
       }
     } else if (mutation.type === "attributes") {
@@ -122,6 +120,7 @@ function bindElement(el) {
   bindScope(el)
   bindAttribute(el)
   bindProperty(el)
+  bindEvent(el)
   bindTemplateRender(el)
 }
 

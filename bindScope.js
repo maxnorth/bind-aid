@@ -1,5 +1,6 @@
 
 function bindScope(el) {
+  console.info('bindScope')
   let elMeta = getMetaElement(el)
 
   elMeta.scopeName = el.getAttribute('data-bind-scope')

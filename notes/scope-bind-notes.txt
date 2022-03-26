@@ -9,3 +9,20 @@ sequence
   - reconfigure binding
 - modify binding def
   - reconfigure binding
+
+
+
+put bindings in a ready-to-receive scope state?
+
+strategies to receive scope: 
+- elements crawl upward
+- scope elements query and reconfigure children
+
+i'm worried that when a scope gets added it will be a heavy operation
+
+two ops - initialize scope, initialize bindings
+
+after initializing scope,
+
+
+for scope element, find any kind of element that isn't under another scope element

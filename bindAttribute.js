@@ -5,6 +5,8 @@ function bindAttribute(el) {
 
   let metaEl = getMetaElement(el)
   
+  let scope = metaEl.scope
+  
   if (metaEl.bindAttrSubId) {
     scope.$.unsubscribe(metaEl.bindAttrSubId)
   }
@@ -13,8 +15,6 @@ function bindAttribute(el) {
   if (!bindExprDef) {
     return
   }
-  
-  let scope = metaEl.scope
 
   metaEl.bindAttrEval = Function(`{${Reflect.ownKeys(scope || {}).join(', ')}}`, `return ({${bindExprDef}})`)
   
@@ -30,6 +30,7 @@ function bindAttribute(el) {
 }
 
 function setAttributes(el, values) {
+  console.info('setAttributes')
   if (values) {
     for (let key of Reflect.ownKeys(values)) {
       let value = String(values[key])

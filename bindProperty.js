@@ -7,6 +7,8 @@ function bindProperty(el) {
 
   let metaEl = getMetaElement(el)
   
+  let scope = metaEl.scope
+  
   if (metaEl.bindPropSubId) {
     scope.$.unsubscribe(metaEl.bindPropSubId)
   }
@@ -16,8 +18,6 @@ function bindProperty(el) {
     return
   }
   
-  let scope = metaEl.scope
-
   metaEl.bindPropEval = Function(`{${Reflect.ownKeys(scope || {}).join(', ')}}`, `return ({${bindExprDef}})`)
   
   // subscribe to changes
@@ -32,6 +32,9 @@ function bindProperty(el) {
 }
 
 function setProperties(el, values) {
+  console.info('setProperties')
+  window.propEls = window.propEls || []
+  window.propEls.push(el)
   if (values) {
     for (let key of Reflect.ownKeys(values)) {
       let value = String(values[key])
