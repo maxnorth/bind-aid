@@ -1,9 +1,7 @@
-function bindTemplateRender(el) {
+function bindTemplateRender(el, metaEl) {
   if (el.constructor !== HTMLTemplateElement) {
     return
   }
-
-  let metaEl = getMetaElement(el)
   
   let scope = metaEl.scope
   
@@ -116,7 +114,7 @@ function renderTemplate(el) {
     }
   }
   
-  el.parentElement.insertBefore(renderedElementsFragment, el.nextSibling)
+  el.parentNode.insertBefore(renderedElementsFragment, el.nextSibling)
 }
 
 function getItemKey(item) {

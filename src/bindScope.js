@@ -1,26 +1,25 @@
 
-function bindScope(el) {
+function bindScope(el, metaEl) {
   console.info('bindScope')
-  let elMeta = getMetaElement(el)
 
-  elMeta.scopeName = el.getAttribute('data-bind-scope')
-  elMeta.scope = getScope(el, elMeta.scopeName)
-  elMeta.scopeValue = el.scope
+  metaEl.scopeName = el.getAttribute('data-bind-scope')
+  metaEl.scope = getScope(el, metaEl.scopeName)
+  metaEl.scopeValue = el.scope
 
-  if (!elMeta.scopePropertyDefined) {
+  if (!metaEl.scopePropertyDefined) {
     Object.defineProperty(el, 'scope', {
       set(value) {
-        elMeta.scopeValue = value
-        if (elMeta.scopeName) {
-          elMeta.scope[elMeta.scopeName] = value
+        metaEl.scopeValue = value
+        if (metaEl.scopeName) {
+          metaEl.scope[metaEl.scopeName] = value
         }
       },
       get() {
-        return elMeta.scopeName ? elMeta.scope[elMeta.scopeName] : elMeta.scopeValue
+        return metaEl.scopeName ? metaEl.scope[metaEl.scopeName] : metaEl.scopeValue
       }
     })
 
-    elMeta.scopePropertyDefined = true
+    metaEl.scopePropertyDefined = true
   }
 }
 

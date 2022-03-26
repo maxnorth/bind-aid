@@ -1,10 +1,10 @@
 // will subscriptions prevent elements from being GC'd?
 // TODO prototype subscription linking
 let _objSubMap = new WeakMap()
+let _objProxyMap = new WeakMap()
 let _subStore = {}
+let _listeningSubId = null
 function Observable(target) {
-  let _subProxies = {}
-  let _listeningSubId = null
   let _proxyProto = null
   let $ = {
     subscribe(expression, callback) {
@@ -42,14 +42,7 @@ function Observable(target) {
       if (_listeningSubId && subId && _listeningSubId !== subId) {
         throw "A subscription is already listening on this proxy"
       }
-      // when the listener gets removed
-      if (_listeningSubId && !subId) {
-        for (let subProxy of Object.values(_subProxies)) {
-          subProxy.$.setListeningSubscription(null)
-        }        
-      }
       _listeningSubId = subId
-      _proxyProto?.$?.setListeningSubscription(subId)
     },
     inherit(protoProxy) {
       _proxyProto = protoProxy
@@ -82,11 +75,12 @@ function Observable(target) {
       }
       if (typeof value === 'object' && value !== null) {
         // TODO, ensure value is a non-proxy
-        let subProxy = _subProxies[prop] = _subProxies[prop] || Observable(value)
-        if (_listeningSubId) {
-          subProxy.$.setListeningSubscription(_listeningSubId)
+        let valueProxy = _objProxyMap.get(value)
+        if (!valueProxy) {
+          valueProxy = Observable(value)
+          _objProxyMap.set(value, valueProxy)
         }
-        return subProxy
+        return valueProxy
       }
       return value
     },
@@ -94,13 +88,7 @@ function Observable(target) {
       console.info('set')
       value = value?._ || value
 
-      let changed = target[prop] !== value
-      // ultimately you'd want to set the cached proxy too i think
       target[prop] = value
-
-      if (changed) {
-        delete _subProxies[prop]
-      }
 
       let propertySubs = _objSubMap.get(target)
       if (propertySubs) {

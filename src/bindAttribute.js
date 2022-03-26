@@ -1,9 +1,7 @@
 
-function bindAttribute(el) {
+function bindAttribute(el, metaEl) {
   // i need to evaluate the expression for the binding, while subscribing the proxy, and store the subscription id
   // when callback is invoked, use it to re-bind the attr
-
-  let metaEl = getMetaElement(el)
   
   let scope = metaEl.scope
   

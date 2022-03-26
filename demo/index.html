@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>bindml</title>
-        <script src="/bindAttribute.js"></script>
-        <script src="/bindEvent.js" ></script>
-        <script src="/bindml.js"></script>
-        <script src="/bindProperty.js" ></script>
-        <script src="/bindScope.js" ></script>
-        <script src="/bindTemplateRender.js" ></script>
-        <script src="/observable.js"></script>
-        <script src="/utils.js"></script>
+        <title>bind-aid</title>
+        <script src="/src/bindAttribute.js"></script>
+        <script src="/src/bindEvent.js" ></script>
+        <script src="/src/bind-aid.js"></script>
+        <script src="/src/bindProperty.js" ></script>
+        <script src="/src/bindScope.js" ></script>
+        <script src="/src/bindTemplateRender.js" ></script>
+        <script src="/src/observable.js"></script>
+        <script src="/src/utils.js"></script>
         <script defer src="main.js"></script>
         <style>
           .test {
@@ -21,28 +21,17 @@
       <div data-bind-scope="test">
         <h1 data-bind-attribute="class: todo.classes">Heyyyyyy</h1>
         <h1 data-bind-property="innerText: todo.classes">This should be replaced</h1>
-        <template data-bind-render-for="z of todo.items" data-bind-render-if="todo.classes === 'test'">
+        <template data-bind-render-for="item of todo.items" data-bind-render-if="item.type === 'reminder'">
           <h1>To Do List</h1>
           <ul data-bind-attribute="
             class: `whatever this is plus ${todo.classes}`,
             title: todo.title
-          ">
-            <template
-              data-bind-render-for="item of todo.items" 
-              data-bind-render-if="item.type === 'reminder'"
-            >
-              <li data-bind-property="innerText: item.name"></li>
-            </template>
-          </ul>
+          "></ul>
           <div>
             <label>My input with value <span data-bind-property="innerText: todo.value"></span></label>
             <input type="text" 
-              data-bind-property="
-                value: todo.value
-              "
-              data-bind-event="
-                input: (e) => todo.value = e.target.value
-              ">
+              data-bind-property="value: todo.value"
+              data-bind-event="input: (e) => todo.value = e.target.value">
           </div>
         </template>
       </div>

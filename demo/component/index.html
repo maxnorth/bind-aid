@@ -2,10 +2,17 @@
 <html>
     <head>
         <title>TodoMVC</title>
-        <script src="/bindml.js" ></script>
-        <script defer>
+        <script src="/src/bindAttribute.js"></script>
+        <script src="/src/bindEvent.js" ></script>
+        <script src="/src/bind-aid.js"></script>
+        <script src="/src/bindProperty.js" ></script>
+        <script src="/src/bindScope.js" ></script>
+        <script src="/src/bindTemplateRender.js" ></script>
+        <script src="/src/observable.js"></script>
+        <script src="/src/utils.js"></script>
+        <script>
           window.addEventListener('load', () => {
-            document.querySelector('[data-bind-scope=todo]').scope = createProxy({ 
+            document.querySelector('[data-bind-scope=todo]').scope = Observable({ 
               classes: 'test', 
               userInput: 'bleh', 
               items: [
@@ -13,7 +20,8 @@
                 {name: 'eric', type: 'reminder2'}
               ],
               value: 'woooo'
-            }, applyScopeAsync)
+            })
+            bind(document.body)
           })
         </script>
         <script defer src="component.js" ></script>

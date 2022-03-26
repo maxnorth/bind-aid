@@ -42,7 +42,7 @@ function bind(rootNode, registerObserver = true) {
     // [data-bind-handler]
   ].join(', ')
 
-  if (rootNode.matches(targetSelector)) {
+  if (rootNode.matches?.(targetSelector)) {
     bindElement(rootNode)
   }
   for (let target of rootNode.querySelectorAll(targetSelector)) {
@@ -57,6 +57,7 @@ let _observer = new MutationObserver((mutationsList, observer) => {
         if (addedNode.constructor === Text) {
           continue
         }
+        // to do: move this into bind() ?
         let metaEl = getMetaElement(addedNode)
         if (metaEl.isBinded) {
           continue
@@ -75,8 +76,10 @@ let _observer = new MutationObserver((mutationsList, observer) => {
         ['data-bind-render-if']: bindTemplateRender,
         ['data-bind-render-for']: bindTemplateRender
       }
+      
+      let metaEl = getMetaElement(mutation.target)
 
-      attrBindingMap[mutation.type](mutation.target)
+      attrBindingMap[mutation.type](mutation.target, metaEl)
     }
     // no support for mutation.type === "characterData"
   }
@@ -98,12 +101,12 @@ function isObserved(el, setValue) {
   return isObserved(el.parentNode)
 }
 
-var _metaEl = new WeakMap()
+var _metaElMap = new WeakMap()
 function getMetaElement(el) {
-  let metaEl = _metaEl.get(el)
+  let metaEl = _metaElMap.get(el)
   if (!metaEl) {
     metaEl = {}
-    _metaEl.set(el, metaEl)
+    _metaElMap.set(el, metaEl)
   }
 
   return metaEl
@@ -117,11 +120,13 @@ function bindElement(el) {
     return
   }
 
-  bindScope(el)
-  bindAttribute(el)
-  bindProperty(el)
-  bindEvent(el)
-  bindTemplateRender(el)
+  let metaEl = getMetaElement(el)
+
+  bindScope(el, metaEl)
+  bindAttribute(el, metaEl)
+  bindProperty(el, metaEl)
+  bindEvent(el, metaEl)
+  bindTemplateRender(el, metaEl)
 }
 
 // need a method to re-evaluate child scope caches, indicate which 

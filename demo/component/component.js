@@ -1,5 +1,5 @@
 const templateHtml = `
-  <template data-bind-scope="hey" data-bind-render>
+  <template data-bind-scope="hey" data-bind-render-for="i of [{}]">
     <h3 data-bind-property="innerText: hey.value"></h3>
   </template>
 
@@ -12,19 +12,16 @@ const templateHtml = `
 
 customElements.define('some-thing', class extends HTMLElement {
   #scope;
-
+  
   constructor() {
     super()
-    const [shadowRoot, template] = this.#initTemplate()
-    this.#scope = template.scope = ReactiveProxy(shadowRoot, {
+    let shadowRoot = this.attachShadow({mode: 'closed'})
+    bind(shadowRoot)
+    shadowRoot.innerHTML = templateHtml
+    let bindTemplate = shadowRoot.querySelector('template[data-bind-scope]')
+    this.#scope = bindTemplate.scope = Observable({
       value: 'whaaat'
     })
-  }
-
-  #initTemplate() {
-    let shadowRoot = this.attachShadow({mode: 'closed'})
-    shadowRoot.innerHTML = templateHtml
-    return [shadowRoot, shadowRoot.children[0]]
   }
 
   set bleh(value) {
