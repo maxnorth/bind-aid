@@ -25,12 +25,12 @@ function bindScope(el, metaEl) {
 
 function getScope(el, newScopeName) {
   let metaEl = getMetaElement(el)
-  let inheritedScope = metaEl.forScope
+  let inheritedScope = metaEl.renderItemScope
   let parentEl = el.parentElement
 
   while (parentEl && !inheritedScope) {
-    let parentmetaEl = getMetaElement(parentEl)
-    inheritedScope = parentmetaEl.scope || parentmetaEl.forScope
+    let parentMetaEl = getMetaElement(parentEl)
+    inheritedScope = parentMetaEl.scope || parentMetaEl.renderItemScope
     parentEl = parentEl.parentElement
   }
 
@@ -48,3 +48,6 @@ function getScope(el, newScopeName) {
 
   return newScope
 }
+
+
+window.bindScope = bindScope

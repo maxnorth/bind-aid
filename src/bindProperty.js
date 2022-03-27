@@ -35,7 +35,7 @@ function setProperties(el, values) {
   window.propEls.push(el)
   if (values) {
     for (let key of Reflect.ownKeys(values)) {
-      let value = String(values[key])
+      let value = values[key]
       // TODO should i keep this 'if' check? should i assume get/set work the same and are defined?
       if (value !== el[key]) {
         el[key] = value
@@ -43,3 +43,5 @@ function setProperties(el, values) {
     }
   }
 }
+
+window.bindProperty = bindProperty

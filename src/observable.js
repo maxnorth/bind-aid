@@ -68,6 +68,7 @@ function Observable(target) {
         let propertySubs = _objSubMap.get(target)
         if (!propertySubs) {
           propertySubs = {}
+          Object.setPrototypeOf(propertySubs, null)
           _objSubMap.set(target, propertySubs)
         }
         propertySubs[prop] = propertySubs[prop] || new Set()
@@ -151,3 +152,4 @@ function Observable(target) {
 // nesting levels, prop inference, multi-subscriber
 
 
+window.Observable = Observable

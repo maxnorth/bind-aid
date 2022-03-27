@@ -31,10 +31,17 @@ function setAttributes(el, values) {
   console.info('setAttributes')
   if (values) {
     for (let key of Reflect.ownKeys(values)) {
-      let value = String(values[key])
-      if (value !== el.getAttribute(key)) {
-        el.setAttribute(key, value)
+      let value = values[key]
+      if (value === undefined) {
+        el.removeAttribute(key)
+        continue
+      }
+      let strValue = value === null ? "" : String(value)
+      if (strValue !== el.getAttribute(key)) {
+        el.setAttribute(key, strValue)
       }
     }
   }
 }
+
+window.bindAttribute = bindAttribute

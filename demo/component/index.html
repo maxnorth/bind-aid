@@ -30,7 +30,7 @@
       <div data-bind-scope="todo" >
         <template data-bind-render-for="z of todo.items" data-bind-render-if="todo.classes === 'test'">
           <h1>To Do List</h1>
-          <some-thing data-bind-property="bleh: todo.value"></some-thing>
+          <hello-world data-bind-property="greeting: todo.value"></hello-world>
           <ul data-bind-attribute="
             class: `whatever this is plus ${todo.classes}`,
             title: todo.title

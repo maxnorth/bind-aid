@@ -1,0 +1,17 @@
+i want to be able to test multiple browsers
+
+i want to be able to test in the browsers
+
+i want to be able to test performance
+
+
+why test?
+- prevent regressions
+- easily test highly specific scenarios
+- test driven development, document requirements and what is/isn't done. help me think through edge cases.
+
+test cases
+- render set vs delete (invidual re-rendering)
+- performance baseline ()
+- basic non-happy path cases
+- observable and non-observable scope, including non-object types

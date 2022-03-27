@@ -11,15 +11,15 @@ function bindTemplateRender(el, metaEl) {
   let bindExprDef = el.getAttribute('data-bind-render-for')?.trim()
   if (bindExprDef) {  
     let splitIndex = bindExprDef.indexOf(' ')
-    let forScopeName = bindExprDef.slice(0, splitIndex)
+    let renderItemScopeName = bindExprDef.slice(0, splitIndex)
     let forDef = bindExprDef.slice(splitIndex).trim()
 
     metaEl.bindRenderForEval = Function(
       `{${Reflect.ownKeys(scope || {}).join(', ')}}`, 
-      `arguments[0] = []; for (${forScopeName} ${forDef}) arguments[0].push(${forScopeName}); return arguments[0];`
+      `arguments[0] = []; for (${renderItemScopeName} ${forDef}) arguments[0].push(${renderItemScopeName}); return arguments[0];`
     )
 
-    metaEl.forScopeName = forScopeName
+    metaEl.renderItemScopeName = renderItemScopeName
     
     metaEl.bindRenderForSubId = scope?.$.subscribe(
       (s) => metaEl.bindRenderForEval(s), 
@@ -32,10 +32,12 @@ function bindTemplateRender(el, metaEl) {
   let bindRenderIfExprDef = el.getAttribute('data-bind-render-if')?.trim()
   if (bindRenderIfExprDef) {
     let scopeNames = Reflect.ownKeys(scope || {})
-    if (metaEl.forScopeName) {
-      scopeNames.push(metaEl.forScopeName)
+    if (metaEl.renderItemScopeName) {
+      scopeNames.push(metaEl.renderItemScopeName)
     }
     metaEl.bindRenderIfEval = Function(`{${scopeNames.join(', ')}}`, `return (${bindRenderIfExprDef})`)
+  } else if (el.attributes['data-bind-render']) {
+    metaEl.bindRenderIfEval = () => true
   }
 
   renderTemplate(el)
@@ -46,7 +48,7 @@ function resetBindTemplate(metaEl) {
     metaEl.scope?.$.unsubscribe(metaEl.bindRenderForSubId)
   }
 
-  metaEl.forScopeName = null
+  metaEl.renderItemScopeName = null
   metaEl.bindRenderForEval = null
   metaEl.bindRenderForSubId = null
   metaEl.bindRenderIfEval = null
@@ -56,53 +58,62 @@ function renderTemplate(el) {
   console.info('renderTemplate')
   let metaEl = getMetaElement(el)
   
-  if (metaEl.renderForMetaItems) {
-    for (let metaItem of metaEl.renderForMetaItems.values()) {
+  if (metaEl.renderMetaItems) {
+    for (let metaItem of metaEl.renderMetaItems.values()) {
       // TODO optimization opportunity - don't remove everything every time
       for (let el of metaItem.elements) {
         el.remove()
       }
       // TODO: optimization opportunity, don't resubscribe every item each time
-      metaItem.forScope.$.unsubscribe(metaItem.bindRenderIfSubId)
+      metaItem.renderItemScope.$.unsubscribe(metaItem.bindRenderIfSubId)
     }
   } else {
-    metaEl.renderForMetaItems = new Map()
+    metaEl.renderMetaItems = new Map()
   }
 
   let renderedElementsFragment = document.createDocumentFragment()
-  let items = metaEl.bindRenderForEval(metaEl.scope)
+  let items = []
+  if (metaEl.bindRenderForEval) {
+    items = metaEl.bindRenderForEval(metaEl.scope)
+  } else if (metaEl.bindRenderIfEval) {
+    items = [renderSingleton]
+  }
   for (let item of items) {
     let itemKey = getItemKey(item)
     let metaItem
-    if (metaEl.renderForMetaItems.has(itemKey)) {
-      metaItem = metaEl.renderForMetaItems.get(itemKey)
+    if (metaEl.renderMetaItems.has(itemKey)) {
+      metaItem = metaEl.renderMetaItems.get(itemKey)
     } else {
       metaItem = {}
-      metaEl.renderForMetaItems.set(itemKey, metaItem)
+      metaEl.renderMetaItems.set(itemKey, metaItem)
 
       // create elements
       metaItem.elements = [...el.content.cloneNode(true).children]
 
       // configure scope (create, inherit, assign to items)
-      metaItem.forScope = new Observable({
-        [metaEl.forScopeName]: item?._ || item 
-      })
-
-      if (metaEl.scope) {
-        metaItem.forScope.$.inherit(metaEl.scope)
+      if (metaEl.renderItemScopeName) {
+        metaItem.renderItemScope = new Observable({
+          [metaEl.renderItemScopeName]: item?._ || item 
+        })
+  
+        if (metaEl.scope) {
+          metaItem.renderItemScope.$.inherit(metaEl.scope)
+        }
+      } else {
+        metaItem.renderItemScope = metaEl.scope
       }
-      
-      for (let forItemEl of metaItem.elements) {
-        let forItemMetaEl = getMetaElement(forItemEl)
-        forItemMetaEl.forScope = metaItem.forScope
+            
+      for (let itemEl of metaItem.elements) {
+        let itemMetaEl = getMetaElement(itemEl)
+        itemMetaEl.renderItemScope = metaItem.renderItemScope
       }
     }
 
     // if condition
     metaItem.renderIfResult = true
     if (metaEl.bindRenderIfEval) {        
-      metaItem.renderIfResult = metaEl.bindRenderIfEval(metaItem.forScope)
-      metaItem.bindRenderIfSubId = metaItem.forScope?.$.subscribe(
+      metaItem.renderIfResult = metaEl.bindRenderIfEval(metaItem.renderItemScope)
+      metaItem.bindRenderIfSubId = metaItem.renderItemScope?.$.subscribe(
         (s) => metaEl.bindRenderIfEval(s), 
         // TODO: maybe this queues the render in the next frame?
         (values, error) => error ? null : renderTemplate(el)
@@ -120,6 +131,8 @@ function renderTemplate(el) {
 function getItemKey(item) {
   return item?._ || item
 }
+
+let renderSingleton = {}
 
   // CORE ---------------------------------------------------------------
 
@@ -150,3 +163,5 @@ function getItemKey(item) {
   // Add comments for start and end
 
   // Detecting changes in template content
+
+window.bindTemplateRender = bindTemplateRender

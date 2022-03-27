@@ -5,3 +5,5 @@ function asyncTimeout(delay) {
     }, delay)
   })
 }
+
+window.asyncTimeout = asyncTimeout

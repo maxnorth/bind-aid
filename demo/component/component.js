@@ -1,30 +1,35 @@
-const templateHtml = `
-  <template data-bind-scope="hey" data-bind-render-for="i of [{}]">
-    <h3 data-bind-property="innerText: hey.value"></h3>
-  </template>
-
-  <style>
-    * {
-      color: red;
-    }
-  </style>
-`
-
-customElements.define('some-thing', class extends HTMLElement {
+customElements.define('hello-world', class extends HTMLElement { 
   #scope;
   
   constructor() {
     super()
+    
     let shadowRoot = this.attachShadow({mode: 'closed'})
-    bind(shadowRoot)
-    shadowRoot.innerHTML = templateHtml
-    let bindTemplate = shadowRoot.querySelector('template[data-bind-scope]')
-    this.#scope = bindTemplate.scope = Observable({
-      value: 'whaaat'
+
+    this.#scope = Observable({
+      greeting: 'Hello world!!',
+      doThing: (a) => { console.log(a, this.#scope.greeting) }
     })
+
+    shadowRoot.innerHTML = /*html*/`
+      <template data-bind-scope="helloWorld" data-bind-render>
+        <h3 data-bind-property="innerText: helloWorld.greeting"></h3>
+        <button type="button" data-bind-event="click() { console.log(helloWorld.greeting) }">
+          Click Me
+        </button>
+      </template>
+    
+      <style>
+        * {
+          color: blue;
+        }
+      </style>
+    `
+    
+    shadowRoot.querySelector('template[data-bind-scope]').scope = this.#scope
+    bind(shadowRoot)
   }
 
-  set bleh(value) {
-    this.#scope.value = value
-  }
+  set greeting(value) { this.#scope.greeting = value || 'Hello world!!' }
+  get greeting() { return this.#scope.greeting }
 })

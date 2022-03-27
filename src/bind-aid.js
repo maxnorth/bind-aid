@@ -130,3 +130,6 @@ function bindElement(el) {
 }
 
 // need a method to re-evaluate child scope caches, indicate which 
+
+window.bind = bind
+window.getMetaElement = getMetaElement

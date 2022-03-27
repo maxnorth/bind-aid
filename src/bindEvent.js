@@ -37,7 +37,9 @@ function setEvents(el, eventDefs) {
     if (existingEventDef && existingEventDef !== newEventDef) {
       el.removeEventListener(eventName, existingEventDef, false)
     }
-    el.addEventListener(eventName, newEventDef, false)
+    if (newEventDef) {
+      el.addEventListener(eventName, newEventDef, false)
+    }
   }
 
   for (let eventName in metaEl.bindEventDefs) {
@@ -48,3 +50,5 @@ function setEvents(el, eventDefs) {
 
   metaEl.bindEventDefs = eventDefs
 }
+
+window.bindEvent = bindEvent

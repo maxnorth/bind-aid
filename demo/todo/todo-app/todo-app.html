@@ -1,0 +1,42 @@
+<template data-bind-scope="app" data-bind-render>
+  <div class="todoapp stack-large">
+    <todo-form data-bind-property="addTask: app.addTask"></todo-form>
+    <div class="filters btn-group stack-exception">
+      <template 
+        data-bind-render-for="filterName of app.filterNames"
+        data-bind-render-key="filterName"
+      >
+        <todo-filter-button 
+          data-bind-event="click() { app.filter = filterName }"
+          data-bind-property="
+            filterName: filterName,
+            isPressed: filterName === app.filter
+          ">
+        </todo-filter-button>
+      </template>
+    </div>
+    <h2 
+      id="list-heading" 
+      tabIndex="-1" 
+      data-bind-property="
+        innerText: \`\${app.tasks.length} task\${app.tasks.length === 1 ? '' : 's'} remaining\`
+      "
+    ></h2>
+    <ul
+      role="list"
+      class="todo-list stack-large stack-exception"
+      aria-labelledby="list-heading"
+    >
+      <template data-bind-render-for="task of app.filteredTasks" data-bind-render-key="task.id">
+        <todo-item data-bind-property="
+          id: task.id,
+          name: task.name,
+          completed: task.completed,
+          toggleTaskCompleted() { task.completed = !task.completed },
+          deleteTask() { app.tasks = app.tasks.filter(t => t.id !== task.id) },
+          editTask(newName) { app.tasks.find(t => t.id === task.id).name = newName }
+        "></todo-item>
+      </template>
+    </ul>
+  </div>
+</template>
