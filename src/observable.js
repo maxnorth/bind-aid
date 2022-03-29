@@ -11,7 +11,7 @@ function Observable(target) {
       let subId = Symbol()
       _subStore[subId] = { expression, callback, proxy }
 
-      setTimeout(() => $.evaluateAndListen(subId))
+      $.evaluateAndListen(subId)
 
       return subId
     },
@@ -86,7 +86,7 @@ function Observable(target) {
       return value
     },
     set(target, prop, value) {
-      console.info('set')
+      // console.info('set')
       value = value?._ || value
 
       target[prop] = value
@@ -112,8 +112,10 @@ function Observable(target) {
       return keys
     },
     has(target, key) {
-      let specialKeys = ['$', '_']
-      return specialKeys.includes(key) || Reflect.has(target, key)
+      return key === '$' 
+          || key === '_' 
+          || Reflect.has(target, key) 
+          || _proxyProto && Reflect.has(_proxyProto, key)
     }
   })
 

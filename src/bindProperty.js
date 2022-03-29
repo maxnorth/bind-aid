@@ -30,16 +30,14 @@ function bindProperty(el, metaEl) {
 }
 
 function setProperties(el, values) {
-  console.info('setProperties')
+  // console.info('setProperties')
   window.propEls = window.propEls || []
   window.propEls.push(el)
   if (values) {
     for (let key of Reflect.ownKeys(values)) {
       let value = values[key]
       // TODO should i keep this 'if' check? should i assume get/set work the same and are defined?
-      if (value !== el[key]) {
-        el[key] = value
-      }
+      el[key] = value
     }
   }
 }

@@ -1,6 +1,6 @@
 
 function bindScope(el, metaEl) {
-  console.info('bindScope')
+  // console.info('bindScope')
 
   metaEl.scopeName = el.getAttribute('data-bind-scope')
   metaEl.scope = getScope(el, metaEl.scopeName)

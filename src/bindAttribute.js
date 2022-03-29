@@ -28,7 +28,7 @@ function bindAttribute(el, metaEl) {
 }
 
 function setAttributes(el, values) {
-  console.info('setAttributes')
+  // console.info('setAttributes')
   if (values) {
     for (let key of Reflect.ownKeys(values)) {
       let value = values[key]

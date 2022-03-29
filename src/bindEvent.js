@@ -27,7 +27,7 @@ function bindEvent(el, metaEl) {
 }
 
 function setEvents(el, eventDefs) {
-  console.info('setEvents')
+  // console.info('setEvents')
   let metaEl = getMetaElement(el)
   metaEl.bindEventDefs = metaEl.bindEventDefs || {}
 

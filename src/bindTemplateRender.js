@@ -55,7 +55,7 @@ function resetBindTemplate(metaEl) {
 }
 
 function renderTemplate(el) {
-  console.info('renderTemplate')
+  // console.info('renderTemplate')
   let metaEl = getMetaElement(el)
   
   if (metaEl.renderMetaItems) {
